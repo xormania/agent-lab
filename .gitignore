@@ -1,0 +1,39 @@
+# Local env / secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.local
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.age
+*.gpg
+
+# Runtime / generated data
+data/
+volumes/
+runtime/
+logs/
+cache/
+.tmp/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Python / Node / general caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+node_modules/
+
+# Docker compose override files may contain local paths or secrets
+compose.override.yaml
+compose.*.override.yaml
