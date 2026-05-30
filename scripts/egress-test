@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/common"
+
+mode="${1:-all}"
+
+case "$mode" in
+  all|no-internet|allowlisted)
+    ;;
+  -h|--help)
+    printf 'Usage: %s [all|no-internet|allowlisted]\n' "$0"
+    exit 0
+    ;;
+  *)
+    printf 'Unknown mode: %s\n' "$mode" >&2
+    printf 'Usage: %s [all|no-internet|allowlisted]\n' "$0" >&2
+    exit 1
+    ;;
+esac
+
+agent_lab_require_env_file
+
+run_case() {
+  local case_name="$1"
+  agent_lab_compose --profile devtools run --rm --no-deps --entrypoint /bin/bash \
+    egress-test /tests/egress/cases.sh "$case_name"
+}
+
+printf 'Building egress-test image\n'
+agent_lab_compose --profile devtools build egress-test
+
+if [ "$mode" = "all" ] || [ "$mode" = "no-internet" ]; then
+  printf 'Starting no-internet mode: core + devtools, no egress-proxy\n'
+  agent_lab_compose --profile egress stop egress-proxy >/dev/null 2>&1 || true
+  agent_lab_compose --profile core --profile devtools up -d dns
+  run_case no-internet
+fi
+
+if [ "$mode" = "all" ] || [ "$mode" = "allowlisted" ]; then
+  printf 'Starting allowlisted-egress mode: core + egress + devtools\n'
+  agent_lab_compose --profile core --profile egress --profile devtools up -d dns egress-proxy
+  run_case allowlisted
+
+  printf 'Stopping egress-proxy for fail-closed check\n'
+  agent_lab_compose --profile egress stop egress-proxy
+  run_case fail-closed
+
+  printf 'Restarting egress-proxy after fail-closed check\n'
+  agent_lab_compose --profile core --profile egress up -d egress-proxy
+fi

@@ -10,6 +10,7 @@ secrets/
 *.crt
 *.p12
 *.pfx
+*.kdbx
 *.age
 *.gpg
 
@@ -18,8 +19,15 @@ data/
 volumes/
 runtime/
 logs/
+state/
 cache/
+models/
+browser-profiles/
+agent-state/
 .tmp/
+*.sqlite
+*.db
+*.log
 
 # OS / editor noise
 .DS_Store

@@ -1,0 +1,39 @@
+name: agent-lab
+
+services:
+  dns:
+    image: coredns/coredns:1.14.3
+    profiles:
+      - core
+    command:
+      - -conf
+      - /etc/coredns/Corefile
+    networks:
+      agents:
+        ipv4_address: ${AGENT_LAB_DNS_IP:-172.30.0.10}
+    volumes:
+      - ./dns/coredns/Corefile:/etc/coredns/Corefile:ro
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      # CoreDNS must bind UDP/TCP 53 inside the container.
+      - NET_BIND_SERVICE
+    pids_limit: 128
+    restart: unless-stopped
+
+networks:
+  agents:
+    driver: bridge
+    internal: true
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: ${AGENT_LAB_AGENTS_SUBNET:-172.30.0.0/24}
+  egress:
+    driver: bridge
+
+volumes:
+  audit:

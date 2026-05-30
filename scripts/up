@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/common"
+
+if [ "$#" -eq 0 ]; then
+  agent_lab_usage_profiles "$0"
+  exit 1
+fi
+
+agent_lab_require_env_file
+
+want_core=0
+want_egress=0
+want_devtools=0
+
+for profile in "$@"; do
+  case "$profile" in
+    core)
+      want_core=1
+      ;;
+    egress)
+      want_core=1
+      want_egress=1
+      ;;
+    devtools)
+      want_core=1
+      want_devtools=1
+      ;;
+    *)
+      printf 'Unknown profile: %s\n' "$profile" >&2
+      agent_lab_usage_profiles "$0"
+      exit 1
+      ;;
+  esac
+done
+
+profile_args=()
+[ "$want_core" -eq 1 ] && profile_args+=(--profile core)
+[ "$want_egress" -eq 1 ] && profile_args+=(--profile egress)
+[ "$want_devtools" -eq 1 ] && profile_args+=(--profile devtools)
+
+agent_lab_compose "${profile_args[@]}" up -d --build

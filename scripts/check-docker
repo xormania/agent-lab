@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -u
+
+status=0
+
+pass() {
+  printf 'PASS: %s\n' "$*"
+}
+
+fail() {
+  printf 'FAIL: %s\n' "$*" >&2
+  status=1
+}
+
+if command -v docker >/dev/null 2>&1; then
+  pass "Docker CLI exists"
+else
+  fail "Docker CLI is missing"
+  exit "$status"
+fi
+
+if docker --version >/dev/null 2>&1; then
+  pass "Docker CLI runs"
+else
+  fail "Docker CLI exists but cannot run"
+  exit "$status"
+fi
+
+if docker info >/dev/null 2>&1; then
+  pass "Docker daemon is reachable"
+else
+  fail "Docker daemon is not reachable; start Docker Desktop or the Docker service"
+fi
+
+exit "$status"

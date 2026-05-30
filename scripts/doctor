@@ -1,0 +1,227 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)/common"
+
+failures=0
+warnings=0
+config_file=""
+
+pass() {
+  printf 'PASS %s\n' "$1"
+}
+
+warn() {
+  printf 'WARN %s\n' "$1"
+  warnings=$((warnings + 1))
+}
+
+fail() {
+  printf 'FAIL %s\n' "$1"
+  failures=$((failures + 1))
+}
+
+cleanup() {
+  if [ -n "$config_file" ] && [ -f "$config_file" ]; then
+    rm -f "$config_file"
+  fi
+}
+trap cleanup EXIT
+
+service_networks() {
+  local service="$1"
+  local file="$2"
+  awk -v service="$service" '
+    $0 ~ "^  " service ":$" { in_service=1; next }
+    in_service && $0 ~ /^  [A-Za-z0-9_.-]+:$/ { in_service=0; in_networks=0 }
+    in_service && $0 ~ /^    networks:$/ { in_networks=1; next }
+    in_service && in_networks && $0 ~ /^    [A-Za-z0-9_.-]+:/ { in_networks=0 }
+    in_service && in_networks && $0 ~ /^      [A-Za-z0-9_.-]+:/ {
+      line=$0
+      sub(/^      /, "", line)
+      sub(/:.*/, "", line)
+      print line
+    }
+    in_service && in_networks && $0 ~ /^      - [A-Za-z0-9_.-]+/ {
+      line=$0
+      sub(/^      - /, "", line)
+      print line
+    }
+  ' "$file"
+}
+
+service_has_network() {
+  local service="$1"
+  local network="$2"
+  local file="$3"
+  service_networks "$service" "$file" | grep -qx "$network"
+}
+
+service_has_ip() {
+  local service="$1"
+  local ip="$2"
+  local file="$3"
+  awk -v service="$service" -v ip="$ip" '
+    $0 ~ "^  " service ":$" { in_service=1; next }
+    in_service && $0 ~ /^  [A-Za-z0-9_.-]+:$/ { in_service=0 }
+    in_service && index($0, "ipv4_address: " ip) > 0 { found=1 }
+    END { exit found ? 0 : 1 }
+  ' "$file"
+}
+
+if command -v docker >/dev/null 2>&1; then
+  pass "Docker CLI exists"
+else
+  fail "Docker CLI is missing"
+fi
+
+if docker --version >/dev/null 2>&1; then
+  pass "Docker CLI runs"
+else
+  fail "Docker CLI exists but cannot run"
+fi
+
+if docker info >/dev/null 2>&1; then
+  pass "Docker daemon is reachable"
+else
+  fail "Docker daemon is not reachable; start Docker Desktop or the Docker service"
+fi
+
+if docker compose version >/dev/null 2>&1; then
+  pass "Docker Compose v2 works"
+else
+  fail "Docker Compose v2 is unavailable"
+fi
+
+if [ -f "$REPO_ROOT/.env.example" ]; then
+  pass ".env.example exists"
+else
+  fail ".env.example is missing"
+fi
+
+if [ -f "$ENV_FILE" ]; then
+  pass ".env.local exists"
+else
+  fail ".env.local is missing; run: cp .env.example .env.local"
+fi
+
+if [ -f "$REPO_ROOT/.env" ]; then
+  warn ".env exists; Compose auto-loads .env and that can surprise interpolation"
+else
+  pass ".env is absent"
+fi
+
+if (cd "$REPO_ROOT" && git check-ignore -q secrets/dummy); then
+  pass "secrets/ is ignored"
+else
+  fail "secrets/ is not ignored"
+fi
+
+tracked_env="$(cd "$REPO_ROOT" && git ls-files .env '.env.*' 'secrets/*' '*.pem' '*.key' '*.crt' '*.p12' '*.pfx' '*.kdbx' '*.sqlite' '*.db' '*.log' | grep -Ev '^\.env(\..*)?example$' || true)"
+if [ -z "$tracked_env" ]; then
+  pass "no tracked env, secret, key, database, or log files"
+else
+  fail "tracked forbidden files exist"
+  printf '%s\n' "$tracked_env"
+fi
+
+if [ -f "$ENV_FILE" ] && grep -E '([A-Z0-9_]*(TOKEN|SECRET|API[_-]?KEY|PRIVATE[_-]?KEY|ACCESS[_-]?KEY)[A-Z0-9_]*[[:space:]]*[:=][[:space:]]*["'\'']?[A-Za-z0-9_./+=-]{16,}|BEGIN (RSA |OPENSSH |EC |DSA |)PRIVATE KEY)' "$ENV_FILE" >/dev/null; then
+  fail ".env.local contains secret-looking assignments; use files under secrets/ instead"
+else
+  pass ".env.local has no obvious secret-looking assignments"
+fi
+
+if (cd "$REPO_ROOT" && git grep -I -n -E '([A-Z0-9_]*(TOKEN|SECRET|API[_-]?KEY|PRIVATE[_-]?KEY|ACCESS[_-]?KEY)[A-Z0-9_]*[[:space:]]*[:=][[:space:]]*["'\'']?[A-Za-z0-9_./+=-]{16,}|BEGIN (RSA |OPENSSH |EC |DSA |)PRIVATE KEY)' -- . ':!PLAN.md' >/dev/null); then
+  fail "tracked source contains obvious secret-looking assignments or private keys"
+else
+  pass "no obvious tracked secret patterns"
+fi
+
+if [ -f "$ENV_FILE" ] && docker compose version >/dev/null 2>&1; then
+  config_file="$(mktemp)"
+  if agent_lab_compose --profile core --profile egress --profile devtools config >"$config_file"; then
+    pass "docker compose config succeeds"
+  else
+    fail "docker compose config failed"
+  fi
+fi
+
+if [ -n "$config_file" ] && [ -s "$config_file" ]; then
+  if grep -Eq 'network_mode:[[:space:]]*host' "$config_file"; then
+    fail "a service uses network_mode: host"
+  else
+    pass "no service uses network_mode: host"
+  fi
+
+  if grep -q '/var/run/docker.sock' "$config_file"; then
+    fail "a service mounts /var/run/docker.sock"
+  else
+    pass "no service mounts /var/run/docker.sock"
+  fi
+
+  if grep -Eq '(\$HOME|\$\{HOME\}|~/|/home/[^/]+($|/\\.ssh|/\\.config|/Library|/Documents|/Desktop))' "$REPO_ROOT"/compose*.yaml; then
+    fail "compose source appears to mount a host home path"
+  else
+    pass "no host home-directory mount patterns in compose source"
+  fi
+
+  if grep -q 'published:' "$config_file"; then
+    if awk '
+      /published:/ { in_port=1; saw_published=1; saw_host_ip=0 }
+      in_port && /host_ip:[[:space:]]*127\.0\.0\.1/ { saw_host_ip=1 }
+      in_port && /^[[:space:]]{4}[A-Za-z0-9_.-]+:/ {
+        if (saw_published && !saw_host_ip) bad=1
+        in_port=0; saw_published=0; saw_host_ip=0
+      }
+      END {
+        if (in_port && saw_published && !saw_host_ip) bad=1
+        exit bad ? 1 : 0
+      }
+    ' "$config_file"; then
+      pass "published ports, if any, are localhost-bound"
+    else
+      fail "a published port is not bound to 127.0.0.1"
+    fi
+  else
+    pass "no published host ports are configured"
+  fi
+
+  dual_homed_bad=0
+  while IFS= read -r service; do
+    if service_has_network "$service" agents "$config_file" && service_has_network "$service" egress "$config_file"; then
+      if [ "$service" != "egress-proxy" ]; then
+        printf 'FAIL service %s is dual-homed to agents and egress\n' "$service"
+        dual_homed_bad=1
+      fi
+    fi
+  done < <(awk '/^  [A-Za-z0-9_.-]+:$/ { gsub(/^  |:$/, "", $0); print }' "$config_file")
+  if [ "$dual_homed_bad" -eq 0 ]; then
+    pass "only egress-proxy is dual-homed to agents and egress"
+  else
+    failures=$((failures + 1))
+  fi
+
+  if service_has_network egress-test egress "$config_file"; then
+    fail "egress-test is attached to egress"
+  else
+    pass "egress-test is not attached to egress"
+  fi
+
+  if service_has_ip dns 172.30.0.10 "$config_file"; then
+    pass "CoreDNS has expected static IP 172.30.0.10"
+  else
+    fail "CoreDNS does not have expected static IP 172.30.0.10"
+  fi
+
+  if service_has_ip egress-proxy 172.30.0.20 "$config_file"; then
+    pass "Squid has expected static IP 172.30.0.20"
+  else
+    fail "Squid does not have expected static IP 172.30.0.20"
+  fi
+fi
+
+printf 'SUMMARY failures=%s warnings=%s\n' "$failures" "$warnings"
+
+if [ "$failures" -ne 0 ]; then
+  exit 1
+fi

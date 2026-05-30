@@ -1,0 +1,9 @@
+.:53 {
+    errors
+    log
+
+    hosts {
+        172.30.0.10 dns.agent-lab.local
+        172.30.0.20 egress-proxy.agent-lab.local
+    }
+}

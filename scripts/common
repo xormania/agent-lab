@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd)"
+ENV_FILE="${REPO_ROOT}/.env.local"
+PROJECT_NAME="agent-lab"
+
+COMPOSE_FILES=(
+  "${REPO_ROOT}/compose.yaml"
+  "${REPO_ROOT}/compose.egress.yaml"
+)
+
+agent_lab_compose_args=(
+  docker compose
+  --project-name "$PROJECT_NAME"
+  --env-file "$ENV_FILE"
+)
+
+for compose_file in "${COMPOSE_FILES[@]}"; do
+  agent_lab_compose_args+=(-f "$compose_file")
+done
+
+agent_lab_compose() {
+  (cd "$REPO_ROOT" && "${agent_lab_compose_args[@]}" "$@")
+}
+
+agent_lab_require_env_file() {
+  if [ ! -f "$ENV_FILE" ]; then
+    printf 'Missing %s\n' "$ENV_FILE" >&2
+    printf 'cp .env.example .env.local\n' >&2
+    exit 1
+  fi
+}
+
+agent_lab_usage_profiles() {
+  printf 'Usage: %s core|egress|devtools [core|egress|devtools...]\n' "$1" >&2
+}

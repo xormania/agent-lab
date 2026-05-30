@@ -1,0 +1,61 @@
+services:
+  egress-proxy:
+    image: ubuntu/squid:5.2-22.04_beta
+    profiles:
+      - egress
+    networks:
+      agents:
+        ipv4_address: ${AGENT_LAB_PROXY_IP:-172.30.0.20}
+      egress: {}
+    expose:
+      - "${AGENT_LAB_PROXY_PORT:-3128}"
+    volumes:
+      - ./gateway/squid/squid.conf:/etc/squid/squid.conf:ro
+      - ${AGENT_LAB_EGRESS_ALLOWLIST:-./policies/egress.allowlist.example}:/etc/squid/allowlist.txt:ro
+      - ./policies/lan.denylist.example:/etc/squid/lan.denylist.txt:ro
+      - audit:/var/log/squid
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    healthcheck:
+      test:
+        - CMD
+        - squid
+        - -k
+        - check
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  egress-test:
+    image: agent-lab/egress-test:0.1
+    build:
+      context: .
+      dockerfile: tests/egress/Dockerfile
+    profiles:
+      - devtools
+    networks:
+      - agents
+    dns:
+      - ${AGENT_LAB_DNS_IP:-172.30.0.10}
+    environment:
+      HTTP_PROXY: ${HTTP_PROXY:-http://172.30.0.20:3128}
+      HTTPS_PROXY: ${HTTPS_PROXY:-http://172.30.0.20:3128}
+      NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1,::1,172.30.0.0/24}
+      AGENT_LAB_ALLOWED_TEST_DOMAIN: ${AGENT_LAB_ALLOWED_TEST_DOMAIN:-example.com}
+      AGENT_LAB_DIRECT_TEST_IP: ${AGENT_LAB_DIRECT_TEST_IP:-1.1.1.1}
+      AGENT_LAB_DNS_IP: ${AGENT_LAB_DNS_IP:-172.30.0.10}
+    read_only: true
+    tmpfs:
+      - /tmp
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    entrypoint:
+      - sleep
+      - infinity
