@@ -26,7 +26,6 @@ Default stance:
 ## Source of truth
 
 - Repository name: `agent-lab`
-- Default local path: `$HOME/projects/agent-lab/`
 - GitHub is source authority for tracked source.
 - Local `.env`, `.env.local`, secrets, runtime data, caches, model weights, database files, and generated logs are not source authority.
 - Google Drive/shared folders may hold handoffs, source packs, audits, or backups, but not live `.git` repositories or runtime dependency trees.

@@ -26,6 +26,11 @@ models/
 browser-profiles/
 agent-state/
 .tmp/
+# tmp/ holds generated audits, plans, and agent revisions (from tools/new-revision.sh etc.).
+# These files frequently contain absolute host paths (e.g. /home/... or $HOME/projects/...)
+# when written by tools or agents. Keep the dir via .gitkeep but ignore new contents.
+tmp/
+!tmp/.gitkeep
 *.sqlite
 *.db
 *.log

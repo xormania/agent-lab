@@ -27,4 +27,4 @@ Unzip these files **into your existing `agent-lab/` project root.** They ADD the
 - Smallest useful patch; strict, docker-aware bash; read selectively / cite `path:line`.
 
 ## Note
-This overlay's `settings.json` is intentionally stricter than agent-lab's "allowed work without approval" list (the stricter rule wins): it tightens those into "plan + explicit edit, never commit," while `AGENTS.md` continues to carry the real security boundary. `tmp/` isn't in agent-lab's `.gitignore` — add it, or route handoffs to your Drive convention, if you don't want working docs tracked.
+This overlay's `settings.json` is intentionally stricter than agent-lab's "allowed work without approval" list (the stricter rule wins): it tightens those into "plan + explicit edit, never commit," while `AGENTS.md` continues to carry the real security boundary. Working docs land in `tmp/` (now gitignored by default). Use external handoff (Drive etc.) when sharing revisions.
