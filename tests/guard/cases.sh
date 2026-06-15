@@ -42,5 +42,30 @@ expect_guard fail ".npmrc with _authToken -> FAIL"           "$npmrc_tok"
 expect_guard pass ".npmrc without token -> PASS (with WARN)"  "$npmrc_plain"
 expect_guard pass "clean project dir -> PASS"                 "$clean"
 
+# --- secrets dir guard (agent_lab_guard_secrets_dir) ---
+REPO_ROOT="$repo_root"   # the secrets guard resolves relative paths against REPO_ROOT
+
+expect_secrets_guard() {
+  local expected="$1" name="$2" arg="$3" rc=0
+  agent_lab_guard_secrets_dir "$arg" >/dev/null 2>&1 || rc=$?
+  if [ "$expected" = pass ]; then
+    if [ "$rc" -eq 0 ]; then pass "$name"; else fail "$name (expected PASS, got rc=$rc)"; fi
+  else
+    if [ "$rc" -ne 0 ]; then pass "$name"; else fail "$name (expected FAIL, got rc=0)"; fi
+  fi
+}
+
+sec_ssh="$work/sec_ssh"; mkdir -p "$sec_ssh/.ssh"
+sec_aws="$work/sec_aws"; mkdir -p "$sec_aws/.aws"
+sec_npm="$work/sec_npm"; mkdir -p "$sec_npm"; printf '//r/:_authToken=deadbeef\n' > "$sec_npm/.npmrc"
+sec_ok="$work/sec_ok";   mkdir -p "$sec_ok"
+
+expect_secrets_guard fail "secrets=/ -> FAIL"                      "/"
+expect_secrets_guard fail "secrets=HOME -> FAIL"                   "$HOME"
+expect_secrets_guard fail "secrets dir with .ssh -> FAIL"         "$sec_ssh"
+expect_secrets_guard fail "secrets dir with .aws -> FAIL"         "$sec_aws"
+expect_secrets_guard fail "secrets dir with token .npmrc -> FAIL" "$sec_npm"
+expect_secrets_guard pass "clean out-of-repo secrets dir -> PASS" "$sec_ok"
+
 printf 'SUMMARY failures=%s\n' "$failures"
 [ "$failures" -eq 0 ]

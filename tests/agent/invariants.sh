@@ -60,6 +60,14 @@ for overlay in compose.agent.persist.yaml compose.agent.ephemeral.yaml; do
     fail "agent does not cap_drop ALL ($overlay)"
   fi
 
+  user_val="$(printf '%s\n' "$block" | grep -E '^[[:space:]]*user:' | head -n1 | sed -E 's/.*user:[[:space:]]*//; s/"//g' || true)"
+  uid="${user_val%%:*}"
+  if [ -n "$uid" ] && [ "$uid" != "0" ]; then
+    pass "agent runs as a non-root user ($overlay)"
+  else
+    fail "agent runs as root or has no user set ($overlay)"
+  fi
+
   if printf '%s\n' "$cfg" | grep -q '/var/run/docker.sock'; then
     fail "a service mounts the Docker socket ($overlay)"
   else

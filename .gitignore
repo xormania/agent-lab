@@ -4,8 +4,7 @@
 !.env.example
 !.env.*.example
 *.local
-secrets/*
-!secrets/.gitkeep
+secrets/
 *.pem
 *.key
 *.crt

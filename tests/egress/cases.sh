@@ -57,7 +57,7 @@ curl_base() {
 }
 
 direct_public_curl() {
-  HTTP_PROXY= HTTPS_PROXY= ALL_PROXY= http_proxy= https_proxy= all_proxy= NO_PROXY='*' \
+  HTTP_PROXY='' HTTPS_PROXY='' ALL_PROXY='' http_proxy='' https_proxy='' all_proxy='' NO_PROXY='*' \
     curl --silent --show-error --location --connect-timeout 4 --max-time 8 \
       --noproxy '*' "http://${direct_test_ip}/" >/tmp/direct-public.out 2>/tmp/direct-public.err
 }

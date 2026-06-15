@@ -28,8 +28,8 @@ trap cleanup EXIT
 # Run the agent as the host user so the bind-mounted /workspace is writable.
 export AGENT_LAB_PROJECT_DIR="${REPO_ROOT}/tests/agent"
 export AGENT_LAB_EPHEMERAL_HOME=1
-export AGENT_LAB_AGENT_UID="$(id -u)"
-export AGENT_LAB_AGENT_GID="$(id -g)"
+AGENT_LAB_AGENT_UID="$(id -u)"; AGENT_LAB_AGENT_GID="$(id -g)"
+export AGENT_LAB_AGENT_UID AGENT_LAB_AGENT_GID
 
 printf '== agent containment: deny-by-default (base recipe) ==\n'
 AGENT_LAB_ALLOWLIST_RECIPES=base \
