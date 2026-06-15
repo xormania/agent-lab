@@ -1,3 +1,2 @@
-# node-dev: npm registry access.
-registry.npmjs.org
+# node-dev: npm registry access (.npmjs.org matches registry.npmjs.org and other subdomains).
 .npmjs.org

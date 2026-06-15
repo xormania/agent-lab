@@ -91,7 +91,7 @@ coredns_external_refuses() {
   out="$(dig @"$dns_ip" +time=2 +tries=1 "$allowed_domain" A 2>&1 || true)"
   printf '%s\n' "$out" >/tmp/coredns-external.out
   case "$out" in
-    *"status: REFUSED"*|*"status: NXDOMAIN"*)
+    *"status: REFUSED"*|*"status: NXDOMAIN"*|*"status: SERVFAIL"*)
       return 0
       ;;
     *)

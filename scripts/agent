@@ -104,7 +104,7 @@ fi
 
 # Start the containment substrate: CoreDNS + Squid. Squid is the only egress path; it loads
 # the allowlist at startup, so changing recipes needs `scripts/agent down` first to take effect.
-run_compose --profile core --profile egress up -d dns egress-proxy
+run_compose --profile core --profile egress up -d --wait dns egress-proxy
 
 # Run the agent. Guard the bash 3.2 empty-array expansion before "${agent_cmd[@]}".
 if [ "${#agent_cmd[@]}" -gt 0 ]; then
