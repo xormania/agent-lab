@@ -118,8 +118,11 @@ emit_grok() {
     echo "# paths -> prompt. deny survives always-approve. Guard (tools/pretooluse-guard.sh) is"
     echo "# authoritative; these rules are belt-and-suspenders. Hooks are wired in .grok/hooks/."
     echo
-    echo "[ui]"
-    echo 'permission_mode = "always-approve"   # autonomy inside the boundary; denies below still hold'
+    echo "# Autonomy posture is set by the OPERATOR at launch — NOT here. Grok treats [ui] permission_mode"
+    echo "# as a global/user default that can leak across projects, and 'always-approve' is a launch FLAG,"
+    echo "# not a config enum (valid config enum: default|acceptEdits|auto|dontAsk|bypassPermissions|plan)."
+    echo "# Launch:  grok --always-approve   — the deny rules below + the PreToolUse hook still hold (Grok"
+    echo "# runs hooks -> deny>allow -> fast-paths before any prompt-skip). See docs/agent-config.md."
     echo
     echo "[permission]"
     echo "deny = ["
