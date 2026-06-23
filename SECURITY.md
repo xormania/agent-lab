@@ -40,4 +40,8 @@ Domain allowlisting controls where traffic can go. It does not control what an a
 
 ## Vulnerability Reporting
 
-This is a private lab. Report suspected boundary bypasses, secret exposure, or dangerous defaults to the repository owner through the private project channel used for this repository.
+**This is a closed project.** Do not open public GitHub issues for security matters.
+
+Report suspected boundary bypasses, secret exposure, or dangerous defaults to the repository owner through the private project channel used for this repository.
+
+See also the contributing policy in the repository for details on external vs. internal participation.

@@ -2,6 +2,13 @@
 
 `agent-lab` is a private Docker Compose containment lab for experimenting with autonomous agent workloads behind explicit network, filesystem, credential, and egress controls.
 
+> **Repository status (public mirror)**
+>
+> This code is published under the Apache 2.0 license for transparency, reference, and local use/forking.  
+> **No contributions are accepted from non-members.** Pull requests and issues from outside the organization will be closed without review.
+>
+> See [CONTRIBUTING.md](.github/CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) for details.
+
 It is not a general AI application stack, a public SaaS control plane, or an unrestricted agent launcher. The v0 slice implements the containment substrate — an internal agent network, controlled DNS, a Squid egress proxy, and acceptance tests — plus a bring-your-own-agent profile (`scripts/agent`) that runs any agent image on your project behind those controls.
 
 ## Default Posture
@@ -121,3 +128,22 @@ These values are duplicated in `.env.example`, `compose.yaml`, `compose.egress.y
 - Raw blocked attempts are not logged without a future host firewall layer.
 - IPv6 is not enabled on the `agents` network. If Docker IPv6 is enabled host-wide, re-audit before relying on these rules.
 - Allowlisted domains can still receive exfiltrated data. The allowlist bounds where data may go, not what data is sent.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).
+
+## Contributing & PR Policy
+
+**No contributions are accepted from non-members.**
+
+- External pull requests will be closed.
+- External issues will generally be closed (see the issue templates for redirects to documentation and private reporting).
+
+Organization members: see `AGENTS.md`, `doctrine/`, and the internal process.
+
+For everyone else: the repository is provided as-is for you to review or run locally. We are not accepting changes, feature requests, or support requests from the public.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for the lab's security model and how to report vulnerabilities (private channel only).
